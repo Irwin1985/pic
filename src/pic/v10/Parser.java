@@ -1,6 +1,5 @@
-package pic.v9;
+package pic.v10;
 import java.util.List;
-import java.util.LinkedList;
 
 public class Parser {
 	public int currentTokenPosition = 0;
@@ -222,7 +221,6 @@ public class Parser {
 	}
 	
 	public static void main(String args[]) {
-		/*
 		String expression = "!(-100 <= 100)";
 		expression += " ";
 		
@@ -237,60 +235,6 @@ public class Parser {
 		Util.Writeln("--------------------------");
 		
 		Node result = parser.Expression();
-		Util.Writeln(result.eval());
-		*/
-		/*
-		Parser parser = new Parser();
-		Tokenizer tokenizer = new Tokenizer();
-
-		List<String> expressionList = new LinkedList<String>();
-		
-		expressionList.add("(100*2+2)*2+5>=500 ");
-		expressionList.add("((5+1)*100-2+3) ");
-		expressionList.add("100-30/2+13>=10 ");
-		expressionList.add("(853+92*5)*10-20/2+771 ");
-		expressionList.add("(5)*2 ");
-		
-		List<Node> commandList = new LinkedList<Node>();
-		for (String expression : expressionList) {
-			Util.Writeln("Expression: " + expression);
-			parser.currentTokenPosition = 0;
-			parser.tokens = tokenizer.Tokenize(expression);
-			Node node = parser.Expression();
-			if (node != null) {
-				commandList.add(node);
-			}
-		}
-		
-		Util.Writeln("");
-		Util.Writeln("Now, lets calculate expressions...");
-		for (Node command : commandList) {
-			Util.Writeln("Expression Result: " + command.eval());
-		}
-		*/
-		
-		Tokenizer tokenizer = new Tokenizer();
-		Parser parser = new Parser();
-		
-		String conditionExpr = ("1<10 ");
-		String bodyExpr = "10+20 ";
-		
-		parser.tokens = tokenizer.Tokenize(conditionExpr);
-		Node node = parser.Expression();
-		boolean condition = Boolean.valueOf(node.eval().toString());
-		
-		parser.currentTokenPosition = 0;
-		parser.tokens = tokenizer.Tokenize(bodyExpr);
-		Node body = parser.Expression();
-		
-		int count = 0;
-		while (condition == true) {
-			int result = Integer.valueOf(body.eval().toString());
-			Util.Writeln(result);
-			if (count == 5) {
-				break;
-			}
-			count++;
-		}
+		Util.Writeln(result.eval());		
 	}
 }
