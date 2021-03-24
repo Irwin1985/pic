@@ -1,0 +1,15 @@
+package pic.v6;
+
+public enum TokenType {
+	NUMBER,
+	NEWLINE,
+	OPERATOR,
+	EOF,
+	UNKNOWN,
+	ADD,
+	SUBTRACT,
+	MULTIPLY,
+	DIVIDE,
+	LEFT_PAREN,
+	RIGHT_PAREN
+}
