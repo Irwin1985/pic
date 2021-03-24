@@ -1,0 +1,9 @@
+script
+	count = 5
+	msg = count
+	print "Value of Count Variable is "
+	println count
+	count = count + 10
+	print "NEW Value of Count Variable is "
+	println count
+end
