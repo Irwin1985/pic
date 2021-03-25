@@ -1,0 +1,13 @@
+script
+	count = 1
+	while count <= 5
+		if count==5
+			println "High Five!"
+		end
+		else
+			println "Hello World!"
+		end
+		wait 500
+		count = count + 1
+	end
+end
