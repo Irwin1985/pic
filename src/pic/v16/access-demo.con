@@ -1,0 +1,30 @@
+script
+	fruits = ["apple", "orange"]
+	println "Fruits BEFORE Update"
+	println "------------"
+	count = 0
+	while count < 2
+		println fruits[count]
+		wait 300
+		count = count + 1
+	end
+	
+	# Lets leave a space here
+	println ""
+	
+	grp = "Grape"
+	sberry = "Strawbery"
+	
+	fruits[0] = grp
+	fruits[1] = sberry
+	
+	println "Fruits AFTER Update"
+	
+	println "------------"
+	count = 0
+	while count < 2
+		println fruits[count]
+		wait 300
+		count = count + 1
+	end
+end
