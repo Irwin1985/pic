@@ -1,0 +1,14 @@
+script
+	count = 1
+	println count
+
+	def message(msg)
+		println msg
+		count = 2
+		println count
+	end
+
+	result = message("Hello World.")
+	println count
+	println result
+end
