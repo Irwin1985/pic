@@ -2,7 +2,7 @@ package pic.v19;
 import java.util.List;
 
 public class BlockNode extends Node {
-	private List<Node> statements;
+	public List<Node> statements;
 	
 	public BlockNode() {
 		// Nothing

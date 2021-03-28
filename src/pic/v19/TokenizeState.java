@@ -4,7 +4,7 @@ public enum TokenizeState {
 	DEFAULT,
 	OPERATOR,
 	NUMBER,
-	KEYWORD,
+	WORD,
 	STRING,
 	COMMENT,
 }

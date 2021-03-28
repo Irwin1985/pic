@@ -22,7 +22,7 @@ public enum TokenType {
 	ASSIGMENT,
 	NOTEQUAL,
 	NOT,
-	KEYWORD,
+	IDENT,
 	PRINT,
 	PRINTLN,
 	WAIT,
@@ -36,4 +36,7 @@ public enum TokenType {
 	RIGHT_BRACKET,
 	COMMA,
 	DEF,
+	TRUE,
+	FALSE,
+	NULL,
 }

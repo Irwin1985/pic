@@ -2,14 +2,16 @@ package pic.v19;
 import java.util.List;
 import java.util.ArrayList;
 
-public class ArrayNode extends Node {
+public class ArrayAssignmentNode extends Node {
+	public String arrayName;
 	public List<Node> elements;
 	
-	public ArrayNode() {
+	public ArrayAssignmentNode() {
 		// Nothing
 	}
 	
-	public ArrayNode(List<Node> elements) {
+	public ArrayAssignmentNode(String arrayName, List<Node> elements) {
+		this.arrayName = arrayName;
 		this.elements = elements;
 	}
 	

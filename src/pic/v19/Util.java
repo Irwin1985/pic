@@ -18,19 +18,9 @@ public class Util {
 	}
 
 	public static void PrettyPrint(List<Token> tokens) {
-		int numberCount = 0;
-		int opCount = 0;
 		for (Token token : tokens) {
-			if (token.type == TokenType.NUMBER) {
-				System.out.println("Number....: " + token.text);
-				numberCount += 1;
-			} else {
-				System.out.println("Operator..: " + token.type);
-				opCount += 1;
-			}
+			Writeln(token.toString());
 		}
-		System.out.println("You have got " + numberCount + 
-				" different number and " + opCount + " operators.");
 	}
 	
 	public static Node CreatePrintFunction(Parser parser) {

@@ -11,14 +11,19 @@ public class Interpreter {
 		
 		Tokenizer tokenizer = new Tokenizer();
 		Parser parser = new Parser(tokenizer.Tokenize(source));
+		Evaluator evaluator = new Evaluator();
 		
 		if (debug) {
 			DumpTokens(parser);
 		}
-		
+		Environment env = new Environment();
 		Node program = parser.Program();
-		program.eval();
+		SysObject result = evaluator.Eval(program, env);
 
+		if (result != null) {
+			Util.Writeln(result.Resolve());
+		}
+		//program.eval();
 	}
 	
 	public void DumpTokens(Parser parser) {

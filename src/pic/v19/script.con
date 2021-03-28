@@ -1,31 +1,3 @@
 script
-	count = 1	
-	println(count)
-	
-	def message(msg)	
-		println(msg)		
-		count = 2		
-		println(count)		
-	end	
-	result = message("Hola Irwin.")
-	
-	println(count)
-	println(result)
-	
-	# inline functions tests
-	name = "Mehmet"
-	
-	print("Length of your name is:")
-	println(strLen(name))
-	
-	myArray = [1, 2 , 3]
-	
-	print("My array has ")
-	print(arraySize(myArray))
-	println(" elements")
-	
-	name = "Mehmet Emin "
-	surname = "Coskun"
-	
-	println(strConcat(name, surname))
+	2021 - 1985
 end

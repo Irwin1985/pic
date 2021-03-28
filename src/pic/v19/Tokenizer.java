@@ -2,9 +2,31 @@ package pic.v19;
 
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Tokenizer {
 
+	// keywords
+	private HashMap<String, TokenType> keywords;
+	
+	public Tokenizer() {
+		// Fill keywords dictionary
+		keywords = new HashMap<String, TokenType>();
+
+		keywords.put("def", TokenType.DEF);
+		keywords.put("if", TokenType.IF);
+		keywords.put("else", TokenType.ELSE);
+		keywords.put("while", TokenType.WHILE);
+		keywords.put("script", TokenType.SCRIPT);
+		keywords.put("end", TokenType.END);
+		keywords.put("ident", TokenType.IDENT);
+		keywords.put("true", TokenType.TRUE);
+		keywords.put("false", TokenType.FALSE);
+		keywords.put("null", TokenType.NULL);
+		keywords.put("and", TokenType.AND);
+		keywords.put("or", TokenType.OR);
+	}
+	
 	public boolean IsOp(char chr) {
 		boolean addOp = chr == '+' || chr == '-';
 		boolean mulOp = chr == '*' || chr == '/';
@@ -145,7 +167,7 @@ public class Tokenizer {
 					state = TokenizeState.NUMBER;
 				} else if (Character.isLetter(chr)) {
 					tokenText += chr;
-					state = TokenizeState.KEYWORD;
+					state = TokenizeState.WORD;
 				} else if (chr == '"') {
 					state = TokenizeState.STRING;
 				} else if (chr == '#') {
@@ -193,11 +215,11 @@ public class Tokenizer {
 					index--;
 				}
 				break;
-			case KEYWORD:
+			case WORD:
 				if (Character.isLetterOrDigit(chr)) {
 					tokenText += chr;
-				} else {
-					TokenType type = FindStatementType(tokenText);
+				} else {					
+					TokenType type = keywords.getOrDefault(tokenText, TokenType.IDENT);
 					lastToken = new Token(tokenText, type);
 					tokens.add(lastToken);
 					tokenText = "";
@@ -221,42 +243,17 @@ public class Tokenizer {
 				}
 				break;
 			default:
-				System.out.println("Unknown state: " + state);
+				Util.Writeln("Unknown state: " + state);
 				System.exit(1);
 				break;
 			}
 		}
+		// add eof token
+		tokens.add(new Token("", TokenType.EOF));
+		
 		return tokens;
 	}
-	
-	public TokenType FindStatementType(String str) {
-		TokenType type = TokenType.UNKNOWN;
-		switch(str) {
-		case "def":
-			type = TokenType.DEF;
-			break;
-		case "if":
-			type = TokenType.IF;
-			break;
-		case "else":
-			type = TokenType.ELSE;
-			break;
-		case "while":
-			type = TokenType.WHILE;
-			break;
-		case "script":
-			type = TokenType.SCRIPT;
-			break;
-		case "end":
-			type = TokenType.END;
-			break;
-		default:
-			type = TokenType.KEYWORD;
-			break;
-		}
-		return type;
-	}
-	
+		
 	public void PrettyPrint(List<Token> tokens) {
 		int numberCount = 0;
 		int opCount = 0;
@@ -275,12 +272,14 @@ public class Tokenizer {
 	}
 	
 	public static void main(String args[]) {
+
 		String expression = "219+341+19";
 		expression += " ";
 		Tokenizer tokenizer = new Tokenizer();
 		List<Token> tokens = tokenizer.Tokenize(expression);
 		
 		System.out.println("--------------");
-		tokenizer.PrettyPrint(tokens);		
+		tokenizer.PrettyPrint(tokens);
+		
 	}
 }
