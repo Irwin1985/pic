@@ -12,14 +12,4 @@ public class WhileNode extends Node {
 		this.condition = condition;
 		this.body = body;
 	}
-	
-	public Object eval() {
-		Object ret = null;
-		
-		while (Boolean.valueOf(condition.eval().toString())) {
-			ret = body.eval();
-		}
-		
-		return ret;
-	}
 }

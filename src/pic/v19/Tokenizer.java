@@ -25,6 +25,7 @@ public class Tokenizer {
 		keywords.put("null", TokenType.NULL);
 		keywords.put("and", TokenType.AND);
 		keywords.put("or", TokenType.OR);
+		keywords.put("return", TokenType.RETURN);
 	}
 	
 	public boolean IsOp(char chr) {
@@ -88,15 +89,17 @@ public class Tokenizer {
 	public boolean IsParen(char chr) {
 		boolean prntOp = chr == '(' || chr == ')';
 		boolean brktOp = chr == '[' || chr == ']';
+		boolean brcOp = chr == '{' || chr == '}';
 		boolean puncOp = chr == ',';
 
-		return prntOp || brktOp || puncOp;
+		return prntOp || brktOp || puncOp || brcOp;
 	}
 	
 	public boolean IsPunc(char chr) {
 		boolean puncOp = chr == ',';
+		boolean colonOp = chr == ':';
 
-		return puncOp;
+		return puncOp || colonOp;
 	}
 	
 	public TokenType FindPuncType(char firstOperator) {
@@ -105,6 +108,9 @@ public class Tokenizer {
 		switch (firstOperator) {
 		case ',':
 			type = TokenType.COMMA;
+			break;
+		case ':':
+			type = TokenType.COLON;
 			break;
 		default:
 			break;
@@ -126,6 +132,12 @@ public class Tokenizer {
 			break;
 		case ']':
 			type = TokenType.RIGHT_BRACKET;
+			break;
+		case '{':
+			type = TokenType.LEFT_BRACE;
+			break;
+		case '}':
+			type = TokenType.RIGHT_BRACE;
 			break;
 		case ',':
 			type = TokenType.COMMA;

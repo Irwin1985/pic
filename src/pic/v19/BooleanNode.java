@@ -10,13 +10,4 @@ public class BooleanNode extends Node {
 	public BooleanNode(Boolean value) {
 		this.value = value;
 	}
-	
-	public Object eval() {
-		return value;
-	}
-	
-	public String toString() {
-		return value + "";
-	}
-
 }

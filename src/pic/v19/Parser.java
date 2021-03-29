@@ -9,9 +9,7 @@ public class Parser {
 	public List<Token> tokens;
 	public HashMap<String, Object> symbolTable = new HashMap<String, Object>();
 
-	public Parser() {
-		// Nothing
-	}
+	public Parser() {}
 	
 	public Parser(List<Token> tokens) {
 		this.tokens = tokens;
@@ -102,11 +100,6 @@ public class Parser {
 		return result;
 	}
 	
-	private boolean IsArrayAccess() {
-		return CurrentToken().type == TokenType.IDENT && 
-				NextToken().type == TokenType.LEFT_BRACKET;
-	}
-	
 	private boolean IsBoolean() {
 		TokenType type = CurrentToken().type;
 		return type == TokenType.TRUE || type == TokenType.FALSE; 
@@ -118,14 +111,14 @@ public class Parser {
 			node = FunctionCall();
 		} else {			
 			Token token = MatchAndEat(TokenType.IDENT);
-			VariableNode varNode = new VariableNode(token.text, this);
+			VariableNode varNode = new VariableNode(token.text);
 			
 			// Handle array access here
 			if (CurrentToken().type == TokenType.LEFT_BRACKET) {
 				MatchAndEat(TokenType.LEFT_BRACKET);
 				Node key = Expression();
 				MatchAndEat(TokenType.RIGHT_BRACKET);				
-				return new ArrayAccessNode(token.text, key);
+				return new LookupNode(token.text, key);
 			} else {			
 				return varNode;
 			}
@@ -216,6 +209,9 @@ public class Parser {
 			case EQUAL:
 				node = Equal(node);
 				break;
+			case NOTEQUAL:
+				node = NotEqual(node);
+				break;
 			case GREATER:
 				node = Greater(node);
 				break;
@@ -244,6 +240,11 @@ public class Parser {
 	public Node Equal(Node node) {
 		MatchAndEat(TokenType.EQUAL);
 		return new BinOpNode(TokenType.EQUAL, node, ArithmeticExpression());
+	}
+	
+	private Node NotEqual(Node node) {
+		MatchAndEat(TokenType.NOTEQUAL);
+		return new BinOpNode(TokenType.NOTEQUAL, node, ArithmeticExpression());
 	}
 	
 	public Node Greater(Node node) {
@@ -304,14 +305,15 @@ public class Parser {
 		else if (IsIfElse()) {
 			node = If();
 		}
-		else if (IsArrayUpdate()) {
-			node = ArrayUpdate();
+		else if (IsCollectionUpdate()) {
+			node = CollectionUpdate();
 		}
 		else if (IsFunctionDef()) {
 			node = FunctionDefinition();
 		}
-		else if (IsFunctionCall()) {
-			node = FunctionCall();
+		else if (CurrentToken().type == TokenType.RETURN) {
+			MatchAndEat(TokenType.RETURN);
+			node = new ReturnNode(Expression());
 		}
 		else {
 			node = Expression();
@@ -357,11 +359,10 @@ public class Parser {
 	}
 	
 	public boolean IsIfElse() {
-		TokenType type = CurrentToken().type;
-		return type == TokenType.IF || type == TokenType.ELSE;
+		return CurrentToken().type == TokenType.IF;
 	}
 
-	public boolean IsArrayUpdate() {
+	public boolean IsCollectionUpdate() {
 		int currentPosition = currentTokenPosition; // Save current token position
 		boolean result = false;
 		int counter = 0;
@@ -395,101 +396,111 @@ public class Parser {
 	public Node FunctionDefinition() {
 		MatchAndEat(TokenType.DEF);
 		String functionName = MatchAndEat(TokenType.IDENT).text;
-		
-		MatchAndEat(TokenType.LEFT_PAREN);
-		List<Parameter> parameters = FunctionDefParameters();
-		MatchAndEat(TokenType.RIGHT_PAREN);
-		
-		Node functionBody = Block();
-		Function function = new Function(functionName, functionBody, parameters);
-		Node functionVariable = new AssignmentNode(functionName, function, this);
-		
+		List<String> parameters = null;
+
+		// optional parentesis
+		if (CurrentToken().type == TokenType.LEFT_PAREN) {			
+			MatchAndEat(TokenType.LEFT_PAREN);
+		}
+		if (CurrentToken().type != TokenType.RIGHT_PAREN) {			
+			parameters = FunctionDefParameters();
+		}
+		if (CurrentToken().type == TokenType.RIGHT_PAREN) {			
+			MatchAndEat(TokenType.RIGHT_PAREN);
+		}
+
+		BlockNode functionBody = Block();
+		FunctionNode function = new FunctionNode(functionName, functionBody, parameters);
+		//return function;
+
+		Node functionVariable = new AssignmentNode(functionName, function, this);		
 		return functionVariable;
 	}
 	
 	public Node FunctionCall() {
 		String functionName = MatchAndEat(TokenType.IDENT).text;
-		
-		Node calleeFunctionName = new VariableNode(functionName, this);
+		List<Node> actualParameters = null;
+
 		MatchAndEat(TokenType.LEFT_PAREN);
-		List<Parameter> actualParameters = FunctionCallParameters();
+		if (CurrentToken().type != TokenType.RIGHT_PAREN) {			
+			actualParameters = FunctionCallParameters();
+		}
 		MatchAndEat(TokenType.RIGHT_PAREN);
 		
-		Node functionCallNode = new FunctionCallNode(calleeFunctionName, 
-				actualParameters, this);
-		
-		return functionCallNode;
+		return new FunctionCallNode(functionName, actualParameters);
 	}
-	
-	public Object ExecuteFunction(Function function, List<BoundParameter> boundParameters) {
-		HashMap<String, Object> savedSymbolTable = new HashMap<String, Object> (symbolTable);
-		
-		for (int index = 0; index < boundParameters.size(); index++) {
-			BoundParameter param = (BoundParameter) boundParameters.get(index);
-			setVariable(param.getName(), param.getValue());
-		}
-		// Eval function
-		Object ret = function.eval();
-		
-		// Restore symbolTable
-		symbolTable = savedSymbolTable;
-		
-		return ret;
-	}
-	
-	public List<Parameter> FunctionCallParameters() {
-		List<Parameter> actualParameters = null;
+
+	public List<Node> FunctionCallParameters() {
+		List<Node> actualParameters = null;
 		Node expression = Expression();
 		if (expression != null) {
-			actualParameters = new ArrayList<Parameter>();
-			actualParameters.add(new Parameter(expression));
+			actualParameters = new ArrayList<Node>();
+			actualParameters.add(expression);
 			while (CurrentToken().type == TokenType.COMMA) {
 				MatchAndEat(TokenType.COMMA);
-				actualParameters.add(new Parameter(Expression()));
+				actualParameters.add(Expression());
 			}
 		}
 		return actualParameters;
 	}
 	
-	public List<Parameter> FunctionDefParameters() {
-		List<Parameter> parameters = null;
+	public List<String> FunctionDefParameters() {
+		List<String> parameters = null;
 		if (CurrentToken().type == TokenType.IDENT) {
-			parameters = new ArrayList<Parameter>();
-			parameters.add(new Parameter(MatchAndEat(TokenType.IDENT).text));
+			parameters = new ArrayList<String>();
+			parameters.add(MatchAndEat(TokenType.IDENT).text);
 			
 			while (CurrentToken().type == TokenType.COMMA) {
 				MatchAndEat(TokenType.COMMA);
-				parameters.add(new Parameter(MatchAndEat(TokenType.IDENT).text));
+				parameters.add(MatchAndEat(TokenType.IDENT).text);
 			}
 		}
 		return parameters;
 	}
 	
-	public Node ArrayUpdate() {
-		String arrayName = MatchAndEat(TokenType.IDENT).text;
+	public Node CollectionUpdate() {
+		String name = MatchAndEat(TokenType.IDENT).text;
 		
 		MatchAndEat(TokenType.LEFT_BRACKET);
-		Node indexExpr = Expression();
+		Node key = Expression();
 		MatchAndEat(TokenType.RIGHT_BRACKET);
 		
 		MatchAndEat(TokenType.ASSIGMENT);
 		// get the right hand side of the assignment
 		Node rightSideExpr = Expression();
 		
-		return new ArrayUpdateNode(arrayName, indexExpr, rightSideExpr);
+		return new CollectionUpdateNode(name, key, rightSideExpr);
 	}
 	
 	public Node If() {
-		Node condition = null, thenPart = null, elsePart = null;
+		Node condition = null;
+		BlockNode thenPart = null, elsePart = null;
 		
 		MatchAndEat(TokenType.IF);
 		condition = Expression();
-		thenPart = Block();
+		// fill the thenPart node block
+		SkipNewLine();
+		thenPart = new BlockNode();
+		while (CurrentToken().type != TokenType.EOF) {
+			TokenType type = CurrentToken().type; 
+			if (type == TokenType.ELSE || type == TokenType.END) {
+				if (type == TokenType.END) {
+					MatchAndEat(TokenType.END);
+				}
+				break;
+			}
+			Node stmt = Statement();
+			if (stmt != null) {
+				thenPart.statements.add(stmt);
+			}
+		}
 		
 		if (CurrentToken().type == TokenType.ELSE) {
 			MatchAndEat(TokenType.ELSE);
 			if (CurrentToken().type == TokenType.IF) {
-				elsePart = If();
+				List<Node> elseBlock = new ArrayList<Node>();
+				elseBlock.add(If());
+				elsePart = new BlockNode(elseBlock);
 			} else {				
 				elsePart = Block();
 			}
@@ -513,15 +524,44 @@ public class Parser {
 		String name = MatchAndEat(TokenType.IDENT).text;
 		MatchAndEat(TokenType.ASSIGMENT);
 
-		// check for array assignment
 		if (CurrentToken().type == TokenType.LEFT_BRACKET) {
+			// Array assignment
 			node = ArrayDefinition(name);
-		} else {			
+		} 
+		else if (CurrentToken().type == TokenType.LEFT_BRACE) {
+			// Dictionary assignment
+			node = DictionaryDefinition(name);
+		}
+		else {
+			// Variable assignment
 			Node value = Expression();
 			node = new AssignmentNode(name, value, this);
-		}		
+		}	
 		
 		return node;
+	}
+	// dictionary   ::= identifier '=' '{' dictElements? '}'
+	// dictElements ::= keyValuePair (',' keyValuePair)*
+	// keyValuePair ::= string ':' expression
+	private Node DictionaryDefinition(String name) {
+		HashMap<String, Node> elements = new HashMap<String, Node>();
+		MatchAndEat(TokenType.LEFT_BRACE);
+		
+		if (CurrentToken().type != TokenType.RIGHT_BRACE) {
+			StringNode key = (StringNode)Expression();
+			MatchAndEat(TokenType.COLON);
+			elements.put(key.text, Expression());
+			
+			while (CurrentToken().type == TokenType.COMMA) {
+				MatchAndEat(TokenType.COMMA);
+				key = (StringNode)Expression();
+				MatchAndEat(TokenType.COLON);
+				elements.put(key.text, Expression());
+			}
+		}
+		MatchAndEat(TokenType.RIGHT_BRACE);
+
+		return new DictionaryAssignmentNode(name, elements);
 	}
 	
 	public Node ArrayDefinition(String name) {
@@ -581,23 +621,5 @@ public class Parser {
 		if (CurrentToken().type == TokenType.NEWLINE) {
 			MatchAndEat(TokenType.NEWLINE);
 		}
-	}
-	
-	public static void main(String args[]) {
-		String expression = "!(-100 <= 100)";
-		expression += " ";
-		
-		Parser parser = new Parser();
-		Tokenizer tokenizer = new Tokenizer();
-				
-		Util.Writeln("Expression: " + expression);
-		Util.Writeln("--------------------------");
-		parser.tokens = tokenizer.Tokenize(expression);
-		// this method should use the internal tokens property
-		Util.PrettyPrint(parser.tokens);
-		Util.Writeln("--------------------------");
-		
-		Node result = parser.Expression();
-		Util.Writeln(result.eval());		
 	}
 }

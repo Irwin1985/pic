@@ -1,8 +1,21 @@
 package pic.v19;
 
+import java.util.ArrayList;
 import java.util.List;
 
+import java.util.HashMap;
 public class Evaluator {
+	HashMap<String, ObjBuiltin> builtins;
+	
+	public Evaluator() {
+		// Prepare and register builtin functions
+		builtins = new HashMap<String, ObjBuiltin>();
+		builtins.put("print", new ObjBuiltin(new PrintFunc()));
+		builtins.put("println", new ObjBuiltin(new PrintLnFunc()));
+		builtins.put("wait", new ObjBuiltin(new WaitFunc()));
+		builtins.put("arraySize", new ObjBuiltin(new ArraySizeFunc()));
+		builtins.put("strLen", new ObjBuiltin(new StrLenFunc()));
+	}
 	
 	private ObjBool TRUE = new ObjBool(true);
 	private ObjBool FALSE = new ObjBool(false);
@@ -41,7 +54,7 @@ public class Evaluator {
 			String identifier = assigment.name;
 			SysObject value = Eval(assigment.value, env);
 			
-			if (value.Type() == ObjType.ERROR_OBJ) {
+			if (Util.IsError(value)) {
 				return value;
 			}
 			
@@ -60,35 +73,53 @@ public class Evaluator {
 
 			return val;
 		}
-		else if (node instanceof ArrayUpdateNode) {
-			ArrayUpdateNode arrayUpdate = (ArrayUpdateNode)node;
+		else if (node instanceof CollectionUpdateNode) {
+			CollectionUpdateNode collectionNode = (CollectionUpdateNode)node;
 			
 			// get the elements from symbol table.
-			SysObject value = env.get(arrayUpdate.arrayName);
+			SysObject value = env.get(collectionNode.name);
 			if (value == null) {
-				return new ObjError("array does not exist: " + arrayUpdate.arrayName);
+				return new ObjError("array does not exist: " + collectionNode.name);
 			}
-			
-			// cast elements
-			ObjArray objArray = (ObjArray)value;
-			
-			// Resolve index
-			value = Eval(arrayUpdate.indexExpression, env);
-			
-			if (value.Type() == ObjType.ERROR_OBJ) {
-				return value;
+			if (value.Type() == ObjType.ARRAY_OBJ) {
+				
+				// cast to ARRAY_OBJ
+				ObjArray objArray = (ObjArray)value;
+				
+				// Resolve index
+				value = Eval(collectionNode.key, env);
+				
+				if (Util.IsError(value)) {
+					return value;
+				}
+				// check for INTEGER_OBJ
+				if (value.Type() != ObjType.INTEGER_OBJ) {
+					return new ObjError("Array index must be resolved to INTEGER.");
+				}
+				// check for out of bounds
+				int index = ((ObjInteger)value).value;
+				if (index >= objArray.elements.size() || index < 0) {
+					return new ObjError("Array index out of bound.");
+				}
+				// update the array element at index (index)
+				objArray.elements.set(index, collectionNode.rightSideExpression);
+			} else if (value.Type() == ObjType.DICT_OBJ) {
+				// cast to DICT_OBJ
+				ObjDictionary objDict = (ObjDictionary)value;
+				// Resolve index
+				value = Eval(collectionNode.key, env);
+				if (Util.IsError(value)) {
+					return value;
+				}
+				// check for STRING_OBJ
+				if (value.Type() != ObjType.STRING_OBJ) {
+					return new ObjError("Dictionary Accessor must be resolved to STRING.");
+				}
+				// update or create the element
+				objDict.elements.put(((ObjString)value).text, collectionNode.rightSideExpression);				
+			} else {
+				return new ObjError("The identifier is not a collection type");
 			}
-			// check for INTEGER_OBJ
-			if (value.Type() != ObjType.INTEGER_OBJ) {
-				return new ObjError("Array index must be resolved to INTEGER.");
-			}
-			// check for out of bounds
-			int index = ((ObjInteger)value).value;
-			if (index > objArray.elements.size() || index < 0) {
-				return new ObjError("Array index out of bound.");
-			}
-			// update the array element at index (index)
-			objArray.elements.set(index, arrayUpdate.rightSideExpression);
 		}
 		else if (node instanceof ArrayAssignmentNode) {
 			// cast from node to ArrayAssignmentNode
@@ -100,35 +131,180 @@ public class Evaluator {
 			
 			return objArray;			
 		}
-		else if (node instanceof ArrayAccessNode) {
+		else if (node instanceof DictionaryAssignmentNode) {
+			// cast from node to DictionaryAssignmentNode
+			DictionaryAssignmentNode dict = (DictionaryAssignmentNode)node;
+			// create the dictionary object
+			ObjDictionary objDict = new ObjDictionary(dict.name, dict.elements);
+			// register the array into the symbol table.
+			env.set(dict.name, objDict);
+
+			return objDict;
+		}
+		else if (node instanceof LookupNode) {
 			// cast to LookUpNode
-			ArrayAccessNode lookup = (ArrayAccessNode)node;
+			LookupNode lookup = (LookupNode)node;
 			
-			// eval array index (must be an INTEGER_OBJ)
-			SysObject index = Eval(lookup.arrayIndex, env);
-			if (index.Type() == ObjType.ERROR_OBJ) {
-				return index;
-			}
-			if (index.Type() != ObjType.INTEGER_OBJ) {
-				return new ObjError("Array index must be resolved to INTEGER.");
+			// eval element accessor (key, index)
+			SysObject objAccessor = Eval(lookup.key, env);
+			if (Util.IsError(objAccessor)) {
+				return objAccessor;
 			}
 			
-			// find the symbol (array identifier)
-			String identifier = lookup.arrayName;
+			// fetch the saved symbol
+			String identifier = lookup.name;
 			SysObject value = env.get(identifier);
 			if (value == null) {
-				return new ObjError("Array does not exist: " + identifier);
+				return new ObjError("Identifier does not exist: " + identifier);
 			}
-			// cast the ARRAY_OBJ
-			ObjArray objArray = (ObjArray)value;
-			ObjInteger arrayIndex = (ObjInteger)index;
-
-			if (arrayIndex.value < 0 || 
-					arrayIndex.value > objArray.elements.size()) {
-				return new ObjError("Array index out of bound.");
+			
+			// check the type of symbol
+			if (value.Type() == ObjType.ARRAY_OBJ) {				
+				// accessor must be an integer object
+				if (objAccessor.Type() != ObjType.INTEGER_OBJ) {
+					return new ObjError("Array index must be resolved to INTEGER.");
+				}
+				// cast the ARRAY_OBJ
+				ObjArray objArray = (ObjArray)value;
+				ObjInteger arrayIndex = (ObjInteger)objAccessor;
+				
+				if (arrayIndex.value < 0 || 
+						arrayIndex.value >= objArray.elements.size()) {
+					return new ObjError("Array index out of bound.");
+				}
+				
+				return Eval(objArray.elements.get(arrayIndex.value), env);
 			}
+			else if (value.Type() == ObjType.DICT_OBJ) {
+				// accessor must be a string object
+				if (objAccessor.Type() != ObjType.STRING_OBJ) {
+					return new ObjError("The key accessor must be a valid string.");
+				}
+				// cast the DICT_OBJ
+				ObjDictionary objDict = (ObjDictionary)value;
+				// try get the key value
+				String key = ((ObjString)objAccessor).text;
+				Node element = objDict.elements.get(key);
+				if (element == null) {
+					return new ObjError("Key element does not exist: " + key);
+				}
+				return Eval(element, env);
+			} else {
+				return new ObjError("Cannot access a non Collection type.");
+			}
+			
+			
+		}
+		else if (node instanceof FunctionNode) {
+			FunctionNode funcNode = (FunctionNode)node;			
+			ObjFunction objFunc = new ObjFunction(funcNode.name, funcNode.parameters, funcNode.body, env);
 
-			return Eval(objArray.elements.get(arrayIndex.value), env);
+			return objFunc;
+		}
+		else if (node instanceof FunctionCallNode) {
+			FunctionCallNode callNode = (FunctionCallNode)node;
+			// get the saved function symbol
+			SysObject value = env.get(callNode.name);
+			if (value == null) {
+				// try find the function as builtin
+				value = builtins.get(callNode.name);
+				if (value == null) {					
+					return new ObjError("Function does not exist: " + callNode.name);
+				}
+			}
+			if (value.Type() == ObjType.FUNC_OBJ) {
+				// cast to FUNCTION_OBJ
+				ObjFunction objFunc = (ObjFunction)value;
+				
+				// Evaluate and fill the arguments
+				List<SysObject> arguments = new ArrayList<SysObject>();
+				for (Node argument : callNode.actualParameters) {
+					SysObject objArg = Eval(argument, env);
+					if (Util.IsError(objArg)) {
+						return objArg;
+					}
+					arguments.add(objArg);
+				}			
+
+				// extends the env from FUNCTION env.
+				Environment extendedEnv = new Environment(objFunc.env);
+				// register arguments in new environment
+				int index = 0;
+				for (String param : objFunc.params) {
+					extendedEnv.set(param, arguments.get(index));
+					index++;
+				}
+				// execute function
+				SysObject result = Eval(objFunc.body, extendedEnv);
+				if (result.Type() == ObjType.RETURN_OBJ) {
+					return ((ObjReturn)result).value;
+				}
+				return result;
+			}
+			else if (value.Type() == ObjType.BUILTIN_OBJ) {
+				// cast to ObjBuiltin
+				ObjBuiltin objBuiltin = (ObjBuiltin)value;
+
+				// Evaluate and fill the arguments
+				List<SysObject> arguments = new ArrayList<SysObject>();
+				for (Node argument : callNode.actualParameters) {
+					SysObject objArg = Eval(argument, env);
+					if (Util.IsError(objArg)) {
+						return objArg;
+					}
+					arguments.add(objArg);
+				}
+				return objBuiltin.function.Execute(arguments);
+			}			
+		}
+		else if (node instanceof ReturnNode){
+			ReturnNode returnNode = (ReturnNode)node;
+			if (returnNode.returnValue != null) {
+				SysObject result = Eval(returnNode.returnValue, env);
+				if (Util.IsError(result)) {
+					return result;
+				}
+				return new ObjReturn(result);
+			}
+		}
+		else if (node instanceof IfNode) {
+			IfNode ifNode = (IfNode)node;
+			SysObject condition = Eval(ifNode.condition, env);
+			if (Util.IsError(condition)) {
+				return condition;
+			}			
+			if (condition.Type() != ObjType.BOOL_OBJ) {
+				return new ObjError("Condition must be evaluated to BOOLEAN.");
+			}
+			if (((ObjBool)condition).value) {
+				return Eval(ifNode.thenPart, env);
+			} else if (ifNode.elsePart != null) {
+				return Eval(ifNode.elsePart, env);
+			}
+		}
+		else if (node instanceof WhileNode) {
+			WhileNode whileNode = (WhileNode)node;
+			while (true) {
+				SysObject condition = Eval(whileNode.condition, env);
+				if (Util.IsError(condition)) {
+					return condition;
+				}				
+				if (condition.Type() != ObjType.BOOL_OBJ) {
+					return new ObjError("Condition must be evaluated to BOOLEAN.");
+				}
+				if (((ObjBool)condition).value) {
+					SysObject result = Eval(whileNode.body, env);
+					if (result != null) {
+						if (Util.IsError(result)) {
+							return result;
+						} else if (result.Type() == ObjType.RETURN_OBJ) {
+							return ((ObjReturn)result).value;
+						}
+					}
+				} else {
+					break;
+				}
+			}
 		}
 		return NULL;
 	}
@@ -141,7 +317,7 @@ public class Evaluator {
 			if (result.Type() == ObjType.RETURN_OBJ) {
 				return ((ObjReturn)result).value;
 			}
-			else if (result.Type() == ObjType.ERROR_OBJ) {
+			else if (Util.IsError(result)) {
 				return (ObjError)result;
 			}
 		}
@@ -166,12 +342,12 @@ public class Evaluator {
 	
 	private SysObject EvalBinaryOperation(BinOpNode node, Environment env) {
 		SysObject left = Eval(node.left, env);
-		if (left.Type() == ObjType.ERROR_OBJ) {
+		if (Util.IsError(left)) {
 			return left;
 		}
 		
 		SysObject right = Eval(node.right, env);
-		if (right.Type() == ObjType.ERROR_OBJ) {
+		if (Util.IsError(right)) {
 			return right;
 		}
 		
@@ -180,6 +356,9 @@ public class Evaluator {
 		}
 		else if (left.Type() == ObjType.STRING_OBJ && right.Type() == ObjType.STRING_OBJ) {
 			return StringExpression((ObjString)left, node.op, (ObjString)right);
+		}
+		else if(left.Type() == ObjType.BOOL_OBJ && right.Type() == ObjType.BOOL_OBJ) {
+			return BooleanExpression((ObjBool)left, node.op, (ObjBool)right);
 		}
 		
 		return NULL;
@@ -192,12 +371,24 @@ public class Evaluator {
 		case SUBTRACT:
 			return new ObjInteger(left.value - right.value);
 		case MULTIPLY:
-			return new ObjInteger(left.value - right.value);
+			return new ObjInteger(left.value * right.value);
 		case DIVIDE:
 			if (right.value == 0) {
 				return new ObjError("Error: division by zero.");
 			}
 			return new ObjInteger(left.value / right.value);
+		case LESS:
+			return new ObjBool(left.value < right.value);
+		case GREATER:
+			return new ObjBool(left.value > right.value);
+		case LESSEQUAL:
+			return new ObjBool(left.value <= right.value);
+		case GREATEREQUAL:
+			return new ObjBool(left.value >= right.value);
+		case EQUAL:
+			return new ObjBool(left.value == right.value);
+		case NOTEQUAL:
+			return new ObjBool(left.value != right.value);
 		default:
 			return new ObjError("Unsupported operator in INTEGER operation: " + op);
 		}
@@ -212,9 +403,44 @@ public class Evaluator {
 		}
 	}
 	
+	private SysObject BooleanExpression(ObjBool left, TokenType op, ObjBool right) {
+		switch(op) {
+		case EQUAL:
+			return new ObjBool(left.value == right.value);
+		case NOTEQUAL:
+			return new ObjBool(left.value != right.value);
+		case LESS:
+		{
+			int leftInt = left.value ? 1 : 0;
+			int rightInt = right.value ? 1 : 0;
+			return new ObjBool(leftInt < rightInt);			
+		}
+		case GREATER:
+		{
+			int leftInt = left.value ? 1 : 0;
+			int rightInt = right.value ? 1 : 0;
+			return new ObjBool(leftInt > rightInt);			
+		}
+		case LESSEQUAL:
+		{
+			int leftInt = left.value ? 1 : 0;
+			int rightInt = right.value ? 1 : 0;
+			return new ObjBool(leftInt <= rightInt);			
+		}
+		case GREATEREQUAL:
+		{
+			int leftInt = left.value ? 1 : 0;
+			int rightInt = right.value ? 1 : 0;
+			return new ObjBool(leftInt >= rightInt);			
+		}
+		default:
+			return new ObjError("Invalid operator for Boolean Comparison: " + op);
+		}
+	}
+	
 	private SysObject EvalLogicalOperation(BinOpNode node, Environment env) {
 		SysObject left = Eval(node.left, env);
-		if (left.Type() == ObjType.ERROR_OBJ) {
+		if (Util.IsError(left)) {
 			return left;
 		}
 		
@@ -229,7 +455,7 @@ public class Evaluator {
 			}
 			// here the right side is required.
 			SysObject right = Eval(node.right, env);
-			if (right.Type() == ObjType.ERROR_OBJ) {
+			if (Util.IsError(right)) {
 				return right;
 			}
 			if (right.Type() != ObjType.BOOL_OBJ) {
@@ -243,7 +469,7 @@ public class Evaluator {
 			}
 			// here the right side is required.
 			SysObject right = Eval(node.right, env);
-			if (right.Type() == ObjType.ERROR_OBJ) {
+			if (Util.IsError(right)) {
 				return right;
 			}
 			if (right.Type() != ObjType.BOOL_OBJ) {

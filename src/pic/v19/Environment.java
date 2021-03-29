@@ -10,6 +10,7 @@ public class Environment {
 	}
 	
 	public Environment(Environment parent) {
+		symbolTable = new HashMap<String, SysObject>();
 		this.parent = parent;
 	}
 	

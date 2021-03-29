@@ -10,12 +10,4 @@ public class NumberNode extends Node {
 	public NumberNode(Integer value) {
 		this.value = value;
 	}
-	
-	public Object eval() {
-		return value;
-	}
-	
-	public String toString() {
-		return value + "";
-	}
 }

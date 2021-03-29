@@ -11,14 +11,4 @@ public class ProgramNode extends Node {
 	public ProgramNode(List<Node> statements) {
 		this.statements = statements;
 	}
-	
-	public Object eval() {
-		Object ret = null;
-		
-		for (Node statement : statements) {
-			ret = statement.eval();
-		}
-		
-		return ret;
-	}
 }

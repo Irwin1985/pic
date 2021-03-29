@@ -14,12 +14,4 @@ public class AssignmentNode extends Node {
 		this.value = value;
 		this.parser = parser;
 	}
-	
-	public Object eval() {
-		if (value instanceof Function) {
-			return parser.setVariable(name, value);
-		} else {			
-			return parser.setVariable(name, value.eval());
-		}
-	}
 }

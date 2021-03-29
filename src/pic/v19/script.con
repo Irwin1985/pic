@@ -1,3 +1,27 @@
 script
-	2021 - 1985
+	strLen("This is a sample text!")
+	
+	fruits = ["Apple", "Peach", "Pineapple", "Strawberry", "Grappes"]	
+	arraySize(fruits)
+	
+	# function square
+	def square(n)
+		return n * n
+	end
+	print("Calling square: ")
+	println(square(5))
+	
+	# function fibonacci
+	def fibonacci(n)
+		if (n<=1)
+			return n
+		end
+		return fibonacci(n-1) + fibonacci(n-2)
+	end
+	
+	tope = 1
+	while (tope <= 15)
+		println(fibonacci(tope))
+		tope = tope + 1
+	end
 end

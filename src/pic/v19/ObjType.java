@@ -8,4 +8,7 @@ public enum ObjType {
 	BOOL_OBJ,
 	NULL_OBJ,
 	ARRAY_OBJ,
+	DICT_OBJ,
+	FUNC_OBJ,
+	BUILTIN_OBJ,
 }

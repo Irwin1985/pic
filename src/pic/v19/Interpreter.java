@@ -23,7 +23,6 @@ public class Interpreter {
 		if (result != null) {
 			Util.Writeln(result.Resolve());
 		}
-		//program.eval();
 	}
 	
 	public void DumpTokens(Parser parser) {

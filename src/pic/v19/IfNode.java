@@ -14,19 +14,4 @@ public class IfNode extends Node {
 		this.thenPart = thenPart;
 		this.elsePart = elsePart;
 	}
-	
-	public Object eval() {
-		Object ret = null;
-		
-		if (condition != null && thenPart != null) {
-			if (Boolean.valueOf(condition.eval().toString())) {				
-				ret = thenPart.eval();
-			} else {
-				if (elsePart != null) {
-					ret = elsePart.eval();
-				}
-			}
-		}
-		return ret;
-	}
 }

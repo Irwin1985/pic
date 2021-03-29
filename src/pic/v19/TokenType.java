@@ -34,9 +34,13 @@ public enum TokenType {
 	ELSE,
 	LEFT_BRACKET,
 	RIGHT_BRACKET,
+	LEFT_BRACE,
+	RIGHT_BRACE,
 	COMMA,
 	DEF,
 	TRUE,
 	FALSE,
 	NULL,
+	COLON,
+	RETURN,
 }
