@@ -1,0 +1,14 @@
+package pic.v20;
+
+public enum ObjType {
+	NUMBER_OBJ,
+	STRING_OBJ,
+	RETURN_OBJ,
+	ERROR_OBJ,
+	BOOL_OBJ,
+	NULL_OBJ,
+	ARRAY_OBJ,
+	DICT_OBJ,
+	FUNC_OBJ,
+	BUILTIN_OBJ,
+}

@@ -1,0 +1,7 @@
+script	
+	class person
+		def walk
+			println("I'm walking!")
+		end
+	end
+end
